@@ -125,6 +125,9 @@ class MainWindow(QMainWindow):
         main_widget = QWidget()
         main_widget.setLayout(main_layout)
         self.stacked_widget.addWidget(main_widget)
+
+        self.progressbar = IndeterminateProgressBar(start=False)
+        main_layout.addWidget(self.progressbar)
         
         #tooltips
         self.settings_button.setToolTip(QCoreApplication.translate("MainWindow", "Settings"))
@@ -143,11 +146,23 @@ class MainWindow(QMainWindow):
         self.clear_button.setToolTipDuration(2000)
         self.clear_button.installEventFilter(ToolTipFilter(self.clear_button, 0, ToolTipPosition.TOP))
 
+        self.mic_button.setToolTip(QCoreApplication.translate("MainWindow", "Voice input"))
+        self.mic_button.setToolTipDuration(2000)
+        self.mic_button.installEventFilter(ToolTipFilter(self.mic_button, 0, ToolTipPosition.TOP))
+
+        self.comboBox1.setToolTip(QCoreApplication.translate("MainWindow", "Voice selection"))
+        self.comboBox1.setToolTipDuration(2000)
+        self.comboBox1.installEventFilter(ToolTipFilter(self.comboBox1, 0, ToolTipPosition.TOP))
+
+        self.comboBox2.setToolTip(QCoreApplication.translate("MainWindow", "Output format"))
+        self.comboBox2.setToolTipDuration(2000)
+        self.comboBox2.installEventFilter(ToolTipFilter(self.comboBox2, 0, ToolTipPosition.TOP))
+
         #connect
         self.settings_button.clicked.connect(self.show_settings_page)
         #self.file_button
         #self.start_button
-        self.clear_button.clicked.connect(lambda: clearinput(self))
+        self.clear_button.clicked.connect(self.clearinput)
         #self.mic_button
 
 
@@ -171,7 +186,7 @@ class MainWindow(QMainWindow):
 
         card_layout = QVBoxLayout()
 
-        self.modelsins_title = StrongBodyLabel(QCoreApplication.translate("MainWindow", "Model management"))
+        self.modelsins_title = StrongBodyLabel(QCoreApplication.translate("MainWindow", "Voice input management"))
         self.modelsins_title.setTextColor(QColor(0, 0, 0), QColor(255, 255, 255))
         card_layout.addSpacing(20)
         card_layout.addWidget(self.modelsins_title, alignment=Qt.AlignmentFlag.AlignTop)
@@ -271,7 +286,6 @@ class MainWindow(QMainWindow):
         self.scroll_area.setWidget(self.card_widget)
         settings_layout.addWidget(self.scroll_area)
 
-    
         settings_widget = QWidget()
         settings_widget.setLayout(settings_layout)
 
