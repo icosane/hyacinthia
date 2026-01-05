@@ -8,15 +8,11 @@ def mic_button_clicked(self):
 
 def recording_started(self):
     self.current_text = self.textinputw.toPlainText()
+    if self.voice_controller.model:
+        self.textinputw.setPlaceholderText(QCoreApplication.translate("MainWindow","Recording..."))
+    else:
+        self.textinputw.setPlaceholderText(QCoreApplication.translate("MainWindow","Loading Whisper model..."))
     self.textinputw.clear()
-    self.textinputw.setPlaceholderText(
-        QCoreApplication.translate(
-            "MainWindow",
-            "Recording..." if self.voice_controller.model
-            else "Loading Whisper model..."
-        )
-    )
-    self.textinputw.repaint()
     self.mic_button.setIcon(FluentIcon.PAUSE)
 
 def recording_stopped(self):

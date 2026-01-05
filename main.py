@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     if os.name == 'nt':
         import ctypes
-        myappid = u'icosane.hyacinthia' 
+        myappid = u'icosane.hyacinthia'
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
     app = QApplication(sys.argv)
