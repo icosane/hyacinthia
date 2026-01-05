@@ -1,7 +1,10 @@
-from PyQt5.QtCore import QThread, pyqtSignal, QCoreApplication
-import os
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QCoreApplication
+import os, shutil
 from faster_whisper import download_model
 from .config import cfg
+from qfluentwidgets import InfoBar, InfoBarPosition
+from files.pathconfig import base_dir
+
 
 class ModelDownloaderThread(QThread):
     download_finished = pyqtSignal(str)
@@ -46,3 +49,35 @@ def update_model(main_window):
         main_window.update_record_button(True)
         main_window.update_remove_button(True)
         main_window.card_deletewhispermodel.setContent(content)
+
+def whispermodelremover(main_window):
+    directory = os.path.join(base_dir, "models", "whisper", f"models--Systran--faster-whisper-{cfg.get(cfg.whisper_model).value}")
+    cur_model = cfg.get(cfg.whisper_model).value
+    if not os.path.exists(directory):
+        directory = os.path.join(base_dir, "models", "whisper", f"models--mobiuslabsgmbh--faster-whisper-{cfg.get(cfg.whisper_model).value}")
+    if os.path.exists(directory) and os.path.isdir(directory):
+        try:
+            # Remove the directory and its contents
+            shutil.rmtree(directory)
+            cfg.set(cfg.whisper_model, 'None')
+
+
+            InfoBar.success(
+                title=QCoreApplication.translate("MainWindow", "Success"),
+                content=QCoreApplication.translate("MainWindow", f"{cur_model} model removed"),
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=2000,
+                parent=main_window
+            )
+        except Exception as e:
+            InfoBar.error(
+                title=QCoreApplication.translate("MainWindow", "Error"),
+                content=QCoreApplication.translate("MainWindow", f"Failed to remove Whisper model: {e}"),
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=2000,
+                parent=main_window
+            )

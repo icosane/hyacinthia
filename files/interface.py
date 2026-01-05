@@ -1,5 +1,5 @@
 import sys, os
-from PyQt5.QtGui import QColor, QIcon, QFont
+from PyQt5.QtGui import QColor, QIcon, QFont, QKeySequence
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QFileDialog, QLabel, QStackedWidget, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal, QTranslator, QCoreApplication, QTimer, QSettings
 '''sys.stdout = open(os.devnull, 'w')
@@ -9,9 +9,11 @@ from qfluentwidgets import setThemeColor, TransparentToolButton, FluentIcon, Pus
 from qframelesswindow.utils import getSystemAccentColor
 from ctranslate2 import get_cuda_device_count
 from files.config import cfg, available_models
-from files.whisper_utils import update_model
+from files.whisper_utils import update_model, whispermodelremover
 from files.voice_input import VoiceController
 from files.mic_controls import recording_started, recording_stopped, transcription_ready
+from files.pathconfig import voices_dir
+from files.shortcuts import ShortcutsCard
 
 
 class MainWindow(QMainWindow):
@@ -25,9 +27,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(QCoreApplication.translate("MainWindow", "hyacinthia"))
         #icon_path = os.path.join(res_dir, "AlyssumResources", "assets", "icon.ico")
         #self.setWindowIcon(QIcon(icon_path))
-        #self.settings = QSettings('icosane', 'Alyssum')
+        self.settings = QSettings('icosane', 'hyacinthia')
         self.setMinimumSize(1280,600)
-        #self.restore_settings()
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
         self.current_text = ""
@@ -39,12 +40,16 @@ class MainWindow(QMainWindow):
 
         self.main_layout()
         self.settings_layout()
+        self.restore_settings()
         self.setup_theme()
         update_model(self)
         self.center()
 
         self.theme_changed.connect(self.update_theme)
         self.whispermodel_changed.connect(lambda: update_model(self))
+
+        cfg.launchcut.valueChanged.connect(self.update_launch_shortcut)
+        cfg.clcut.valueChanged.connect(self.update_clear_shortcut)
 
     def setup_theme(self):
         if sys.platform in ["win32", "darwin"]:
@@ -109,7 +114,7 @@ class MainWindow(QMainWindow):
         self.comboBox1 = ComboBox()
         self.comboBox2 = ComboBox()
 
-        self.voices = ['voice1', 'voice2', 'voice3', 'voice4']
+        self.voices = [f for f in os.listdir(voices_dir) if os.path.isfile(os.path.join(voices_dir, f))]
         self.format = ['mp3', 'wav']
         self.comboBox1.addItems(self.voices)
         self.comboBox2.addItems(self.format)
@@ -226,7 +231,7 @@ class MainWindow(QMainWindow):
         )
 
         card_layout.addWidget(self.card_deletewhispermodel, alignment=Qt.AlignmentFlag.AlignTop)
-        #self.card_deletewhispermodel.clicked.connect(self.whispermodelremover)
+        self.card_deletewhispermodel.clicked.connect(lambda: whispermodelremover(self))
         if ((cfg.get(cfg.whisper_model).value == 'None')):
             self.card_deletewhispermodel.button.setDisabled(True)
 
@@ -252,6 +257,9 @@ class MainWindow(QMainWindow):
         )
 
         card_layout.addWidget(self.card_switch_line_format, alignment=Qt.AlignmentFlag.AlignTop)
+
+        self.card_editshortcuts = ShortcutsCard()
+        card_layout.addWidget(self.card_editshortcuts, alignment=Qt.AlignmentFlag.AlignTop)
 
         self.card_setlanguage = ComboBoxSettingCard(
             configItem=cfg.language,
@@ -382,3 +390,53 @@ class MainWindow(QMainWindow):
                 parent=self
             )
             self.update_remove_button(False)
+    
+    def save_settings(self):
+        self.settings.setValue("size", self.size())
+        self.settings.setValue("pos", self.pos())
+        self.settings.setValue('selected_voice_index', self.comboBox1.currentIndex())
+        self.settings.setValue('selected_format_index', self.comboBox2.currentIndex())
+
+    def restore_settings(self):
+        size = self.settings.value("size")
+        pos = self.settings.value("pos")
+
+        if size is not None:
+            self.resize(size)
+        if pos is not None:
+            self.move(pos)
+        saved_voice_index = self.settings.value('selected_voice_index', type=int)
+        saved_format_index = self.settings.value('selected_format_index', type=int)
+        self.comboBox1.setCurrentIndex(saved_voice_index)
+        self.comboBox2.setCurrentIndex(saved_format_index)
+
+    def closeEvent(self, event):
+        self.save_settings()
+        super().closeEvent(event)
+
+    def keyPressEvent(self, event):
+        if cfg.get(cfg.shortcuts):
+            pressed = QKeySequence(int(event.modifiers()) | event.key())
+
+            if pressed.matches(cfg.get(cfg.launchcut)) == QKeySequence.ExactMatch:
+                self.start_button.click()
+            elif pressed.matches(cfg.get(cfg.clcut)) == QKeySequence.ExactMatch:
+                self.clear_button.click()
+            elif pressed.matches(cfg.get(cfg.filecut)) == QKeySequence.ExactMatch:
+                pass
+            elif pressed.matches(cfg.get(cfg.startvi)) == QKeySequence.ExactMatch:
+                self.voice_controller.toggle_recording()
+
+        super().keyPressEvent(event)
+
+    def update_launch_shortcut(self, shortcut):
+        self.card_editshortcuts.set_launch_shortcut(shortcut)
+
+    def update_clear_shortcut(self, shortcut):
+        self.card_editshortcuts.set_clear_shortcut(shortcut)
+
+    def update_file_shortcut(self, shortcut):
+        self.card_editshortcuts.set_file_shortcut(shortcut)
+
+    def update_voice_shortcut(self, shortcut):
+        self.card_editshortcuts.set_voice_shortcut(shortcut)

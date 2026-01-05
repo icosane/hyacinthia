@@ -1,5 +1,5 @@
 import sys,os
-from files.cudaconfig import initialize
+from files.pathconfig import initialize
 initialize()
 from files.config import cfg
 from PyQt5.QtWidgets import QApplication

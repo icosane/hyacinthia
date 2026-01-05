@@ -1,6 +1,10 @@
 import sys,os
 from ctranslate2 import get_cuda_device_count
 
+base_dir, res_dir = (os.path.dirname(sys.executable), sys.prefix) if getattr(sys, 'frozen', False) else (os.path.dirname(os.path.abspath(__file__)), os.path.dirname(os.path.abspath(__file__)))
+
+voices_dir = os.path.join(base_dir, "voices")
+
 def get_lib_paths():
     if getattr(sys, 'frozen', False):  # Running inside PyInstaller
         base_dir = os.path.join(sys.prefix)

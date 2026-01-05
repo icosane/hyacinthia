@@ -57,31 +57,9 @@ class KeyCombinationSerializer(ConfigSerializer):
             return QKeySequence()
 
 
-
 class KeyCombinationConfigItem(ConfigItem):
     def __init__(self, group: str, key: str, default: str):
         super().__init__(group, key, QKeySequence(default), serializer=KeyCombinationSerializer())
-
-filtered_models = [m for m in available_models() if not m.startswith('distil') and not m.endswith('.en') and m != 'turbo']
-
-WhisperModel = Enum('WhisperModel', {**{"NONE": "None"}, **{m.upper(): m for m in filtered_models}})
-
-class WhisperModelSerializer(ConfigSerializer):
-    """ WhisperModel serializer """
-
-    def __init__(self):
-        self.model_map = {model.value: model for model in WhisperModel}
-
-    def serialize(self, model):
-        return model.value if model != WhisperModel.NONE else "None"
-
-    def deserialize(self, value: str):
-        if value == "None":
-            return WhisperModel.NONE
-        model = self.model_map.get(value)
-        if model is None:
-            raise ValueError(f"Invalid model: {value}")
-        return model
 
 class Config(QConfig):
     language = OptionsConfigItem(
@@ -95,12 +73,10 @@ class Config(QConfig):
         "Whisper", "whisper_model", WhisperModel.NONE, OptionsValidator(WhisperModel), WhisperModelSerializer(), restart=False)
     shortcuts = ConfigItem("Shortcuts", "shortcuts", False, BoolValidator())
     lineformat = ConfigItem("MainWindow", "lineformat", False, BoolValidator())
-    """ocrcut = KeyCombinationConfigItem("Shortcuts", "OCR", "F1")
-    tlcut = KeyCombinationConfigItem("Shortcuts", "Translation", "F2")
-    clcut = KeyCombinationConfigItem("Shortcuts", "Clear windows", "F3")
-    copycut = KeyCombinationConfigItem("Shortcuts", "SelectAndCopy", "F5")
-    filecut = KeyCombinationConfigItem("Shortcuts", "FileTranslation", "F6")
-    startvi = KeyCombinationConfigItem("Shortcuts", "VoiceInput", "F7")"""
+    launchcut = KeyCombinationConfigItem("Shortcuts", "Launch", "F1")
+    clcut = KeyCombinationConfigItem("Shortcuts", "Clear", "F2")
+    filecut = KeyCombinationConfigItem("Shortcuts", "FileSelection", "F3")
+    startvi = KeyCombinationConfigItem("Shortcuts", "VoiceInput", "F5")
 
 
 cfg = Config()
