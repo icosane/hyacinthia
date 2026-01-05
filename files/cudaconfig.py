@@ -1,4 +1,5 @@
 import sys,os
+from ctranslate2 import get_cuda_device_count
 
 def get_lib_paths():
     if getattr(sys, 'frozen', False):  # Running inside PyInstaller
@@ -18,3 +19,9 @@ def get_lib_paths():
         cudnn = os.path.join(nvidia_base_libs, "cudnn", "lib")
 
     return [cuda_runtime, cublas, cudnn]
+
+def initialize():
+    if get_cuda_device_count() != 0:
+        for dll_path in get_lib_paths():
+            if os.path.exists(dll_path):
+                os.environ["PATH"] = dll_path + os.pathsep + os.environ["PATH"]

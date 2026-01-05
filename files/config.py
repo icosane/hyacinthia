@@ -94,14 +94,13 @@ class Config(QConfig):
     whisper_model = OptionsConfigItem(
         "Whisper", "whisper_model", WhisperModel.NONE, OptionsValidator(WhisperModel), WhisperModelSerializer(), restart=False)
     shortcuts = ConfigItem("Shortcuts", "shortcuts", False, BoolValidator())
-    ocrcut = KeyCombinationConfigItem("Shortcuts", "OCR", "F1")
+    lineformat = ConfigItem("MainWindow", "lineformat", False, BoolValidator())
+    """ocrcut = KeyCombinationConfigItem("Shortcuts", "OCR", "F1")
     tlcut = KeyCombinationConfigItem("Shortcuts", "Translation", "F2")
     clcut = KeyCombinationConfigItem("Shortcuts", "Clear windows", "F3")
     copycut = KeyCombinationConfigItem("Shortcuts", "SelectAndCopy", "F5")
     filecut = KeyCombinationConfigItem("Shortcuts", "FileTranslation", "F6")
-    startvi = KeyCombinationConfigItem("Shortcuts", "VoiceInput", "F7")
-    tray = ConfigItem("Settings", "minimizetotray", False, BoolValidator())
-    lineformat = ConfigItem("MainWindow", "lineformat", False, BoolValidator())
+    startvi = KeyCombinationConfigItem("Shortcuts", "VoiceInput", "F7")"""
 
 
 cfg = Config()

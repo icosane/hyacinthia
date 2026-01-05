@@ -1,18 +1,11 @@
 import sys,os
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QFont
-from files.interface import MainWindow
+from files.cudaconfig import initialize
+initialize()
 from files.config import cfg
-from files.cudaconfig import get_lib_paths
-from ctranslate2 import get_cuda_device_count
-
+from PyQt5.QtWidgets import QApplication
+from files.interface import MainWindow
 
 if __name__ == "__main__":
-    if get_cuda_device_count() != 0:
-        for dll_path in get_lib_paths():
-            if os.path.exists(dll_path):
-                os.environ["PATH"] = dll_path + os.pathsep + os.environ["PATH"]
-
     if cfg.get(cfg.dpiScale) != "Auto":
         os.environ["QT_SCALE_FACTOR"] = str(cfg.get(cfg.dpiScale))
 
@@ -33,6 +26,6 @@ if __name__ == "__main__":
 
     window = MainWindow()
     window.show()
-    #sys.excepthook = ErrorHandler()
-    #sys.stderr = ErrorHandler()
+    sys.excepthook = sys.__excepthook__
+    sys.stderr = sys.__stderr__
     sys.exit(app.exec())

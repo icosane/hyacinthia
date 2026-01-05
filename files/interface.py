@@ -7,14 +7,17 @@ import warnings
 warnings.filterwarnings("ignore")'''
 from qfluentwidgets import setThemeColor, TransparentToolButton, FluentIcon, PushSettingCard, isDarkTheme, MessageBox, FluentTranslator, IndeterminateProgressBar, PushButton, SubtitleLabel, ComboBoxSettingCard, OptionsSettingCard, HyperlinkCard, ScrollArea, InfoBar, InfoBarPosition, StrongBodyLabel, TransparentTogglePushButton, TextBrowser, TextEdit, BodyLabel, LineEdit, SimpleExpandGroupSettingCard, SwitchButton, ToolTipFilter, ToolTipPosition, SwitchSettingCard, ToolButton, PlainTextEdit, ComboBox, RangeSettingCard
 from qframelesswindow.utils import getSystemAccentColor
+from ctranslate2 import get_cuda_device_count
 from files.config import cfg, available_models
+from files.whisper_utils import update_model
+from files.voice_input import VoiceController
+from files.mic_controls import recording_started, recording_stopped, transcription_ready
 
 
 class MainWindow(QMainWindow):
     theme_changed = pyqtSignal()
     package_changed = pyqtSignal()
     whispermodel_changed = pyqtSignal()
-    lang_changed = pyqtSignal()
     fileSelected = pyqtSignal(str)
 
     def __init__(self):
@@ -27,13 +30,21 @@ class MainWindow(QMainWindow):
         #self.restore_settings()
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
+        self.current_text = ""
+
+        self.voice_controller = VoiceController(
+            whisper_model_name=cfg.get(cfg.whisper_model).value,
+            device="cuda" if get_cuda_device_count() != 0 else "cpu"
+        )
 
         self.main_layout()
         self.settings_layout()
         self.setup_theme()
-        #update_model(self)
+        update_model(self)
         self.center()
+
         self.theme_changed.connect(self.update_theme)
+        self.whispermodel_changed.connect(lambda: update_model(self))
 
     def setup_theme(self):
         if sys.platform in ["win32", "darwin"]:
@@ -98,10 +109,10 @@ class MainWindow(QMainWindow):
         self.comboBox1 = ComboBox()
         self.comboBox2 = ComboBox()
 
-        items = ['voice1', 'voice2', 'voice3', 'voice4']
-        items0 = ['mp3', 'wav']
-        self.comboBox1.addItems(items)
-        self.comboBox2.addItems(items0)
+        self.voices = ['voice1', 'voice2', 'voice3', 'voice4']
+        self.format = ['mp3', 'wav']
+        self.comboBox1.addItems(self.voices)
+        self.comboBox2.addItems(self.format)
 
         settings_layout = QHBoxLayout()
         settings_layout.addWidget(self.settings_button)
@@ -163,7 +174,11 @@ class MainWindow(QMainWindow):
         #self.file_button
         #self.start_button
         self.clear_button.clicked.connect(self.clearinput)
-        #self.mic_button
+        
+        self.mic_button.clicked.connect(self.voice_controller.toggle_recording)
+        self.voice_controller.recording_started.connect(lambda: recording_started(self))
+        self.voice_controller.recording_stopped.connect(lambda: recording_stopped(self))
+        self.voice_controller.transcription_ready.connect(lambda text: transcription_ready(self, text))
 
 
     def settings_layout(self):
@@ -229,6 +244,15 @@ class MainWindow(QMainWindow):
         card_layout.addWidget(self.fontsize_card,  alignment=Qt.AlignmentFlag.AlignTop )
         cfg.fontsize.valueChanged.connect(self.set_font)
 
+        self.card_switch_line_format = SwitchSettingCard(
+            icon=FluentIcon.FONT_SIZE,
+            title=QCoreApplication.translate("MainWindow","Voice-to-text output format"),
+            content=QCoreApplication.translate("MainWindow","Click to toggle between continuous text and lines per sentence."),
+            configItem=cfg.lineformat
+        )
+
+        card_layout.addWidget(self.card_switch_line_format, alignment=Qt.AlignmentFlag.AlignTop)
+
         self.card_setlanguage = ComboBoxSettingCard(
             configItem=cfg.language,
             icon=FluentIcon.LANGUAGE,
@@ -286,6 +310,9 @@ class MainWindow(QMainWindow):
         self.scroll_area.setWidget(self.card_widget)
         settings_layout.addWidget(self.scroll_area)
 
+        self.download_progressbar = IndeterminateProgressBar(start=False)
+        settings_layout.addWidget(self.download_progressbar)
+
         settings_widget = QWidget()
         settings_widget.setLayout(settings_layout)
 
@@ -294,6 +321,15 @@ class MainWindow(QMainWindow):
 
     def clearinput(self):
         self.textinputw.clear()
+
+    def update_remove_button(self, enabled):
+        if hasattr(self, 'card_deletewhispermodel'):
+            self.card_deletewhispermodel.button.setEnabled(enabled)
+
+    def update_record_button(self, enabled):
+        if hasattr(self, 'mic_button'):
+            self.mic_button.setEnabled(enabled)
+            self.mic_button.repaint()
 
     def restartinfo(self):
         InfoBar.warning(
@@ -305,3 +341,44 @@ class MainWindow(QMainWindow):
             duration=2000,
             parent=self
         )
+
+    def whispermodel_download_finished(self, status):
+        if status == "start":
+            self.download_progressbar.start()
+            InfoBar.info(
+                title=QCoreApplication.translate("MainWindow", "Information"),
+                content=QCoreApplication.translate("MainWindow", "Downloading {} model").format(cfg.get(cfg.whisper_model).value),
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=4000,
+                parent=self
+            )
+            self.update_remove_button(False)
+
+        elif status == "success":
+            if hasattr(self, 'model_thread') and self.model_thread.isRunning():
+                self.model_thread.stop()  # Stop the thread after success
+            self.download_progressbar.stop()
+            InfoBar.success(
+                title=QCoreApplication.translate("MainWindow", "Success"),
+                content=QCoreApplication.translate("MainWindow", "{} model installed successfully!").format(cfg.get(cfg.whisper_model).value),
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=4000,
+                parent=self
+            )
+            self.update_remove_button(True)
+
+        else:
+            InfoBar.error(
+                title=QCoreApplication.translate("MainWindow", "Error"),
+                content=QCoreApplication.translate("MainWindow", f"Failed to download Whisper model: {status}"),
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.BOTTOM,
+                duration=4000,
+                parent=self
+            )
+            self.update_remove_button(False)

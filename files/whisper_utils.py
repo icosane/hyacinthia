@@ -28,8 +28,8 @@ def model_downloader(main_window):
             main_window.model_thread.stop()  # Stop the existing thread if it's running
 
         main_window.model_thread = ModelDownloaderThread()
-        main_window.model_thread.download_start.connect(main_window.on_whispermodel_download_finished)
-        main_window.model_thread.download_finished.connect(main_window.on_whispermodel_download_finished)
+        main_window.model_thread.download_start.connect(main_window.whispermodel_download_finished)
+        main_window.model_thread.download_finished.connect(main_window.whispermodel_download_finished)
         main_window.model_thread.start()
 
 def update_model(main_window):
