@@ -73,6 +73,7 @@ class Config(QConfig):
         "Whisper", "whisper_model", WhisperModel.NONE, OptionsValidator(WhisperModel), WhisperModelSerializer(), restart=False)
     shortcuts = ConfigItem("Shortcuts", "shortcuts", False, BoolValidator())
     lineformat = ConfigItem("MainWindow", "lineformat", False, BoolValidator())
+    caret_at_end = ConfigItem("MainWindow", "caret", True, BoolValidator())
     launchcut = KeyCombinationConfigItem("Shortcuts", "Launch", "F1")
     clcut = KeyCombinationConfigItem("Shortcuts", "Clear", "F2")
     filecut = KeyCombinationConfigItem("Shortcuts", "FileSelection", "F3")

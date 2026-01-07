@@ -1,19 +1,23 @@
 import sys, os
-from PyQt5.QtGui import QColor, QIcon, QFont, QKeySequence
+from PyQt5.QtGui import QColor, QIcon, QFont, QKeySequence, QTextCursor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QFileDialog, QLabel, QStackedWidget, QSizePolicy
-from PyQt5.QtCore import Qt, pyqtSignal, QTranslator, QCoreApplication, QTimer, QSettings
+from PyQt5.QtCore import Qt, pyqtSignal, QTranslator, QCoreApplication, QTimer, QSettings, QThread
 '''sys.stdout = open(os.devnull, 'w')
 import warnings
 warnings.filterwarnings("ignore")'''
-from qfluentwidgets import setThemeColor, TransparentToolButton, FluentIcon, PushSettingCard, isDarkTheme, MessageBox, FluentTranslator, IndeterminateProgressBar, PushButton, SubtitleLabel, ComboBoxSettingCard, OptionsSettingCard, HyperlinkCard, ScrollArea, InfoBar, InfoBarPosition, StrongBodyLabel, TransparentTogglePushButton, TextBrowser, TextEdit, BodyLabel, LineEdit, SimpleExpandGroupSettingCard, SwitchButton, ToolTipFilter, ToolTipPosition, SwitchSettingCard, ToolButton, PlainTextEdit, ComboBox, RangeSettingCard
+from qfluentwidgets import setThemeColor, TransparentToolButton, FluentIcon, PushSettingCard, isDarkTheme, MessageBox, FluentTranslator, IndeterminateProgressBar, PushButton, SubtitleLabel, ComboBoxSettingCard, OptionsSettingCard, HyperlinkCard, ScrollArea, InfoBar, InfoBarPosition, StrongBodyLabel, TransparentTogglePushButton, TextBrowser, TextEdit, BodyLabel, LineEdit, SimpleExpandGroupSettingCard, SwitchButton, ToolTipFilter, ToolTipPosition, SwitchSettingCard, ToolButton, PlainTextEdit, ComboBox, RangeSettingCard, ProgressBar
 from qframelesswindow.utils import getSystemAccentColor
 from ctranslate2 import get_cuda_device_count
 from files.config import cfg, available_models
 from files.whisper_utils import update_model, whispermodelremover
 from files.voice_input import VoiceController
 from files.mic_controls import recording_started, recording_stopped, transcription_ready
-from files.pathconfig import voices_dir
+from files.pathconfig import voices_dir, tts_dir
 from files.shortcuts import ShortcutsCard
+from files.tts import generate
+from files.tts_worker import TTSWorker
+from datetime import datetime
+
 
 
 class MainWindow(QMainWindow):
@@ -114,9 +118,20 @@ class MainWindow(QMainWindow):
         self.comboBox1 = ComboBox()
         self.comboBox2 = ComboBox()
 
-        self.voices = [f for f in os.listdir(voices_dir) if os.path.isfile(os.path.join(voices_dir, f))]
+        self.voice_paths = [
+            os.path.join(voices_dir, f)
+            for f in os.listdir(voices_dir)
+            if os.path.isfile(os.path.join(voices_dir, f))
+        ]
         self.format = ['mp3', 'wav']
-        self.comboBox1.addItems(self.voices)
+
+        display_names = [os.path.basename(p) for p in self.voice_paths]
+
+        self.comboBox1.addItems(display_names)
+
+        for i, full_path in enumerate(self.voice_paths):
+            self.comboBox1.setItemData(i, full_path)
+
         self.comboBox2.addItems(self.format)
 
         settings_layout = QHBoxLayout()
@@ -132,8 +147,6 @@ class MainWindow(QMainWindow):
 
         main_layout.addLayout(settings_layout)
 
-        
-
         self.textinputw = PlainTextEdit()
         self.set_font()
         main_layout.addWidget(self.textinputw)
@@ -143,41 +156,42 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(main_widget)
 
         self.progressbar = IndeterminateProgressBar(start=False)
-        main_layout.addWidget(self.progressbar)
         
+        main_layout.addWidget(self.progressbar)
+
         #tooltips
-        self.settings_button.setToolTip(QCoreApplication.translate("MainWindow", "Settings"))
+        self.settings_button.setToolTip(QCoreApplication.translate("MainWindow", "Open Settings"))
         self.settings_button.setToolTipDuration(2000)
         self.settings_button.installEventFilter(ToolTipFilter(self.settings_button, 0, ToolTipPosition.TOP))
 
-        self.file_button.setToolTip(QCoreApplication.translate("MainWindow", "Open file"))
+        self.file_button.setToolTip(QCoreApplication.translate("MainWindow", "Select file to import from"))
         self.file_button.setToolTipDuration(2000)
         self.file_button.installEventFilter(ToolTipFilter(self.file_button, 0, ToolTipPosition.TOP))
 
-        self.start_button.setToolTip(QCoreApplication.translate("MainWindow", "Start"))
+        self.start_button.setToolTip(QCoreApplication.translate("MainWindow", "Start TTS"))
         self.start_button.setToolTipDuration(2000)
         self.start_button.installEventFilter(ToolTipFilter(self.start_button, 0, ToolTipPosition.TOP))
 
-        self.clear_button.setToolTip(QCoreApplication.translate("MainWindow", "Clear"))
+        self.clear_button.setToolTip(QCoreApplication.translate("MainWindow", "Clear text"))
         self.clear_button.setToolTipDuration(2000)
         self.clear_button.installEventFilter(ToolTipFilter(self.clear_button, 0, ToolTipPosition.TOP))
 
-        self.mic_button.setToolTip(QCoreApplication.translate("MainWindow", "Voice input"))
+        self.mic_button.setToolTip(QCoreApplication.translate("MainWindow", "Toggle Voice Input"))
         self.mic_button.setToolTipDuration(2000)
         self.mic_button.installEventFilter(ToolTipFilter(self.mic_button, 0, ToolTipPosition.TOP))
 
-        self.comboBox1.setToolTip(QCoreApplication.translate("MainWindow", "Voice selection"))
+        self.comboBox1.setToolTip(QCoreApplication.translate("MainWindow", "Select Voice"))
         self.comboBox1.setToolTipDuration(2000)
         self.comboBox1.installEventFilter(ToolTipFilter(self.comboBox1, 0, ToolTipPosition.TOP))
 
-        self.comboBox2.setToolTip(QCoreApplication.translate("MainWindow", "Output format"))
+        self.comboBox2.setToolTip(QCoreApplication.translate("MainWindow", "Select Output Format"))
         self.comboBox2.setToolTipDuration(2000)
         self.comboBox2.installEventFilter(ToolTipFilter(self.comboBox2, 0, ToolTipPosition.TOP))
 
         #connect
         self.settings_button.clicked.connect(self.show_settings_page)
-        #self.file_button
-        #self.start_button
+        self.file_button.clicked.connect(self.open_file_and_load_text)
+        self.start_button.clicked.connect(self.start_tts)
         self.clear_button.clicked.connect(self.clearinput)
         
         self.mic_button.clicked.connect(self.voice_controller.toggle_recording)
@@ -206,7 +220,7 @@ class MainWindow(QMainWindow):
 
         card_layout = QVBoxLayout()
 
-        self.modelsins_title = StrongBodyLabel(QCoreApplication.translate("MainWindow", "Voice input management"))
+        self.modelsins_title = StrongBodyLabel(QCoreApplication.translate("MainWindow", "Voice‑Input Management"))
         self.modelsins_title.setTextColor(QColor(0, 0, 0), QColor(255, 255, 255))
         card_layout.addSpacing(20)
         card_layout.addWidget(self.modelsins_title, alignment=Qt.AlignmentFlag.AlignTop)
@@ -214,8 +228,8 @@ class MainWindow(QMainWindow):
         self.card_setwhispermodel = ComboBoxSettingCard(
             configItem=cfg.whisper_model,
             icon=FluentIcon.CLOUD_DOWNLOAD,
-            title=QCoreApplication.translate("MainWindow","Whisper Model"),
-            content=QCoreApplication.translate("MainWindow", "Change speech recognition model"),
+            title=QCoreApplication.translate("MainWindow","Whisper Speech‑Recognition Model"),
+            content=QCoreApplication.translate("MainWindow", "Select a different Whisper model for speech‑recognition"),
             texts=['None',
                 *[m for m in available_models() if not m.startswith('distil') and not m.endswith('.en') and m != 'turbo']]
         )
@@ -226,8 +240,8 @@ class MainWindow(QMainWindow):
         self.card_deletewhispermodel = PushSettingCard(
             text=QCoreApplication.translate("MainWindow","Remove"),
             icon=FluentIcon.BROOM,
-            title=QCoreApplication.translate("MainWindow","Remove Whisper model"),
-            content=QCoreApplication.translate("MainWindow", "Delete currently selected speech-to-text model. Will be removed: <b>{}</b>").format(cfg.get(cfg.whisper_model).value),
+            title=QCoreApplication.translate("MainWindow","Delete Whisper model"),
+            content=QCoreApplication.translate("MainWindow", "Delete currently selected speech-to-text model. Model to be removed: <b>{}</b>").format(cfg.get(cfg.whisper_model).value),
         )
 
         card_layout.addWidget(self.card_deletewhispermodel, alignment=Qt.AlignmentFlag.AlignTop)
@@ -243,20 +257,33 @@ class MainWindow(QMainWindow):
         self.fontsize_card = RangeSettingCard(
             cfg.fontsize,
             FluentIcon.FONT,
-            title="Font Size",
-            content="Font size in the input window"
+            title="Editor Font Size",
+            content="Font size used in the transcription editor"
         )
         card_layout.addWidget(self.fontsize_card,  alignment=Qt.AlignmentFlag.AlignTop )
         cfg.fontsize.valueChanged.connect(self.set_font)
 
         self.card_switch_line_format = SwitchSettingCard(
             icon=FluentIcon.FONT_SIZE,
-            title=QCoreApplication.translate("MainWindow","Voice-to-text output format"),
-            content=QCoreApplication.translate("MainWindow","Click to toggle between continuous text and lines per sentence."),
+            title=QCoreApplication.translate("MainWindow","Transcription Output Format"),
+            content=QCoreApplication.translate("MainWindow","Toggle between a single continuous paragraph and one line per sentence."),
             configItem=cfg.lineformat
         )
 
         card_layout.addWidget(self.card_switch_line_format, alignment=Qt.AlignmentFlag.AlignTop)
+
+        self.cursor_position_card = SwitchSettingCard(
+            icon=FluentIcon.EDIT,
+            title=QCoreApplication.translate("MainWindow", "Caret position"),
+            content=QCoreApplication.translate(
+                "MainWindow",
+                "When enabled the cursor moves to the end of the imported text. "
+                "When disabled the cursor stays at the beginning."
+            ),
+            configItem=cfg.caret_at_end
+        )
+        card_layout.addWidget(self.cursor_position_card, alignment=Qt.AlignmentFlag.AlignTop)
+
 
         self.card_editshortcuts = ShortcutsCard()
         card_layout.addWidget(self.card_editshortcuts, alignment=Qt.AlignmentFlag.AlignTop)
@@ -264,8 +291,8 @@ class MainWindow(QMainWindow):
         self.card_setlanguage = ComboBoxSettingCard(
             configItem=cfg.language,
             icon=FluentIcon.LANGUAGE,
-            title=QCoreApplication.translate("MainWindow","Language"),
-            content=QCoreApplication.translate("MainWindow", "Change UI language"),
+            title=QCoreApplication.translate("MainWindow","Interface Language"),
+            content=QCoreApplication.translate("MainWindow", "Select the language for the application UI"),
             texts=["English", "Русский"]
         )
 
@@ -286,8 +313,8 @@ class MainWindow(QMainWindow):
         self.card_zoom = OptionsSettingCard(
             cfg.dpiScale,
             FluentIcon.ZOOM,
-            QCoreApplication.translate("MainWindow","Interface zoom"),
-            QCoreApplication.translate("MainWindow","Change the size of widgets and fonts"),
+            QCoreApplication.translate("MainWindow","UI Scaling"),
+            QCoreApplication.translate("MainWindow","Adjust the size of UI elements and fonts"),
             texts=[
                 "100%", "125%", "150%", "175%", "200%",
                 QCoreApplication.translate("MainWindow","Follow System Settings")
@@ -302,7 +329,7 @@ class MainWindow(QMainWindow):
             text="Github",
             icon=FluentIcon.INFO,
             title=QCoreApplication.translate("MainWindow", "About"),
-            content=QCoreApplication.translate("MainWindow", "This software contains source code provided by NVIDIA Corporation. Licenses and details are on GitHub.")
+            content=QCoreApplication.translate("MainWindow", "hyacinthia is a graphical front‑end for F5‑TTS. It includes NVIDIA‑provided source code. License information and project details are available on GitHub.")
         )
         card_layout.addWidget(self.about_card,  alignment=Qt.AlignmentFlag.AlignTop )
 
@@ -341,8 +368,8 @@ class MainWindow(QMainWindow):
 
     def restartinfo(self):
         InfoBar.warning(
-            title=(QCoreApplication.translate("MainWindow", "Success")),
-            content=(QCoreApplication.translate("MainWindow", "Setting takes effect after restart")),
+            title=(QCoreApplication.translate("MainWindow", "Settings Saved")),
+            content=(QCoreApplication.translate("MainWindow", "Changes will be applied after the application restarts")),
             orient=Qt.Orientation.Horizontal,
             isClosable=True,
             position=InfoBarPosition.TOP_RIGHT,
@@ -354,8 +381,8 @@ class MainWindow(QMainWindow):
         if status == "start":
             self.download_progressbar.start()
             InfoBar.info(
-                title=QCoreApplication.translate("MainWindow", "Information"),
-                content=QCoreApplication.translate("MainWindow", "Downloading {} model").format(cfg.get(cfg.whisper_model).value),
+                title=QCoreApplication.translate("MainWindow", "Downloading Model"),
+                content=QCoreApplication.translate("MainWindow", "Downloading Whisper model '{}'").format(cfg.get(cfg.whisper_model).value),
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP_RIGHT,
@@ -369,8 +396,8 @@ class MainWindow(QMainWindow):
                 self.model_thread.stop()  # Stop the thread after success
             self.download_progressbar.stop()
             InfoBar.success(
-                title=QCoreApplication.translate("MainWindow", "Success"),
-                content=QCoreApplication.translate("MainWindow", "{} model installed successfully!").format(cfg.get(cfg.whisper_model).value),
+                title=QCoreApplication.translate("MainWindow", "Download Complete"),
+                content=QCoreApplication.translate("MainWindow", "Whisper model '{}' installed successfully!").format(cfg.get(cfg.whisper_model).value),
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP_RIGHT,
@@ -381,8 +408,8 @@ class MainWindow(QMainWindow):
 
         else:
             InfoBar.error(
-                title=QCoreApplication.translate("MainWindow", "Error"),
-                content=QCoreApplication.translate("MainWindow", f"Failed to download Whisper model: {status}"),
+                title=QCoreApplication.translate("MainWindow", "Download Failed"),
+                content=QCoreApplication.translate("MainWindow", f"Unable to download Whisper model: {status}"),
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.BOTTOM,
@@ -407,8 +434,10 @@ class MainWindow(QMainWindow):
             self.move(pos)
         saved_voice_index = self.settings.value('selected_voice_index', type=int)
         saved_format_index = self.settings.value('selected_format_index', type=int)
-        self.comboBox1.setCurrentIndex(saved_voice_index)
-        self.comboBox2.setCurrentIndex(saved_format_index)
+        if saved_voice_index is not None:
+            self.comboBox1.setCurrentIndex(saved_voice_index)
+        if saved_format_index is not None:
+            self.comboBox2.setCurrentIndex(saved_format_index)
 
     def closeEvent(self, event):
         self.save_settings()
@@ -440,3 +469,209 @@ class MainWindow(QMainWindow):
 
     def update_voice_shortcut(self, shortcut):
         self.card_editshortcuts.set_voice_shortcut(shortcut)
+
+    def start_tts(self):
+        text = self.textinputw.toPlainText().strip()
+        if not text:
+            InfoBar.warning(
+                title=QCoreApplication.translate("MainWindow", "Nothing to synthesize"),
+                content=QCoreApplication.translate("MainWindow", "Please type or load some text first."),
+                parent=self,
+                duration=2000,
+            )
+            return
+
+        ref_file = self.comboBox1.currentData()
+        out_format = self.comboBox2.currentText()
+
+        formatted_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        default_name = f"hyacinthia_output_{formatted_time}." + out_format
+        save_path, _ = QFileDialog.getSaveFileName(
+            self,
+            QCoreApplication.translate("MainWindow", "Save generated speech as…"),
+            os.path.join(os.path.expanduser("~"), default_name),
+            f"{out_format.upper()} Files (*.{out_format});;All Files (*)",
+        )
+        if not save_path:
+            return
+
+        for w in (self.start_button, self.comboBox1, self.comboBox2,
+              self.file_button, self.clear_button, self.mic_button):
+            w.setEnabled(False)
+        self.start_button.setIcon(FluentIcon.PAUSE)
+        self.progressbar.start()
+
+        self._tts_thread = QThread(self)             # keep a reference on the instance
+        self._tts_worker = TTSWorker(text, ref_file, out_format, save_path)
+        self._tts_worker.moveToThread(self._tts_thread)
+        
+
+        self._tts_thread.started.connect(self._tts_worker.run)
+        self._tts_worker.finished.connect(self._on_tts_finished)
+        self._tts_worker.error.connect(self._on_tts_error)
+
+        self._tts_worker.finished.connect(self._tts_thread.quit)
+        self._tts_worker.error.connect(self._tts_thread.quit)
+
+        self._tts_thread.finished.connect(self._tts_thread.deleteLater)
+        self._tts_thread.finished.connect(self._tts_worker.deleteLater)
+
+        self._tts_thread.start()
+
+    def _on_tts_finished(self, saved_path: str):
+        self.progressbar.stop()
+        self.start_button.setEnabled(True)
+        self.comboBox1.setEnabled(True)
+        self.comboBox2.setEnabled(True)
+        self.file_button.setEnabled(True)
+        self.clear_button.setEnabled(True)
+        self.mic_button.setEnabled(True)
+        self.start_button.setIcon(FluentIcon.PLAY)   # back to the original icon
+
+        InfoBar.success(
+            title=QCoreApplication.translate("MainWindow", "TTS finished"),
+            content=QCoreApplication.translate("MainWindow", "File saved to: {0}").format(saved_path),
+            parent=self,
+            duration=3000,
+        )
+    
+    def _on_tts_error(self, message: str):
+        self.progressbar.stop()
+        self.start_button.setEnabled(True)
+        self.comboBox1.setEnabled(True)
+        self.comboBox2.setEnabled(True)
+        self.file_button.setEnabled(True)
+        self.clear_button.setEnabled(True)
+        self.mic_button.setEnabled(True)
+        self.start_button.setIcon(FluentIcon.PLAY)
+
+        MessageBox(
+            QCoreApplication.translate("MainWindow", "Error while generating speech"),
+            message,
+            self,
+        ).exec()
+
+
+
+    def open_file_and_load_text(self):
+        last_folder = self.settings.value("last_folder", os.path.expanduser("~"))
+        if not os.path.isdir(last_folder):
+            last_folder = os.path.expanduser("~")
+
+        dialog = QFileDialog(
+            self,
+            QCoreApplication.translate("MainWindow", "Open Text File"),
+            last_folder,
+            QCoreApplication.translate(
+                "MainWindow",
+                "Text Files (*.txt *.md);;All Files (*)"
+            ),
+        )
+        dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+
+        if not dialog.exec():
+            return
+
+        file_path = dialog.selectedFiles()[0]
+
+        self.settings.setValue("last_folder", os.path.dirname(file_path))
+
+        progress = ProgressBar(self)
+        progress.setMaximumHeight(20)
+        progress.setTextVisible(True)
+        progress.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        parent_layout = self.textinputw.parentWidget().layout()
+        parent_layout.insertWidget(parent_layout.indexOf(self.textinputw), progress)
+
+        file_size = os.path.getsize(file_path)
+        progress.setMaximum(file_size)
+
+        try:
+            import chardet
+        except ImportError:
+            chardet = None
+
+        sample_bytes = b""
+        try:
+            with open(file_path, "rb") as sample_f:
+                sample_bytes = sample_f.read(1_048_576)
+        except Exception as e:
+            progress.deleteLater()
+            MessageBox(
+                QCoreApplication.translate("MainWindow", "Error opening file"),
+                QCoreApplication.translate(
+                    "MainWindow",
+                    "Could not read the selected file:\n{0}"
+                ).format(str(e)),
+                self,
+            ).exec()
+            return
+
+        # Guess the encoding
+        encoding = "utf-8"
+        if chardet:
+            guess = chardet.detect(sample_bytes)
+            if guess["encoding"] and guess["confidence"] >= 0.6:
+                encoding = guess["encoding"]
+
+        text_chunks = []
+        chunk_size = 256 * 1024
+
+        try:
+            with open(file_path, "r", encoding=encoding, errors="strict") as f:
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+                    text_chunks.append(chunk)
+                    progress.setValue(f.tell())
+        except UnicodeDecodeError:
+            with open(file_path, "r", encoding=sys.getdefaultencoding(),
+                      errors="replace") as f:
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+                    text_chunks.append(chunk)
+                    progress.setValue(f.tell())
+        except Exception as e:
+            progress.deleteLater()
+            MessageBox(
+                QCoreApplication.translate("MainWindow", "Error reading file"),
+                QCoreApplication.translate(
+                    "MainWindow",
+                    "Could not read the selected file:\n{0}"
+                ).format(str(e)),
+                self,
+            ).exec()
+            return
+        finally:
+            progress.deleteLater()
+
+        full_text = "".join(text_chunks)
+        self.textinputw.setPlainText(full_text)
+        if cfg.caret_at_end.value:
+            def _scroll_to_end():
+                self.textinputw.moveCursor(QTextCursor.End)
+                self.textinputw.ensureCursorVisible()
+                sb = self.textinputw.verticalScrollBar()
+                sb.setValue(sb.maximum())
+                self.textinputw.setFocus()
+            QTimer.singleShot(0, _scroll_to_end)
+
+        self.fileSelected.emit(file_path)
+
+        InfoBar.success(
+            title=QCoreApplication.translate("MainWindow", "File Loaded"),
+            content=QCoreApplication.translate(
+                "MainWindow",
+                "Successfully loaded “{0}”."
+            ).format(os.path.basename(file_path)),
+            orient=Qt.Orientation.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=2500,
+            parent=self,
+        )

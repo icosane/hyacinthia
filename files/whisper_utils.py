@@ -37,7 +37,7 @@ def model_downloader(main_window):
 
 def update_model(main_window):
     model_name = cfg.get(cfg.whisper_model).value
-    content = QCoreApplication.translate("MainWindow", "Delete currently selected speech-to-text model. Will be removed: <b>{}</b>").format(cfg.get(cfg.whisper_model).value)
+    content = QCoreApplication.translate("MainWindow", "Delete currently selected speech-to-text model. Model to be removed: <b>{}</b>").format(cfg.get(cfg.whisper_model).value)
 
     # Ensure record_button is updated
     if model_name == 'None':
@@ -63,8 +63,8 @@ def whispermodelremover(main_window):
 
 
             InfoBar.success(
-                title=QCoreApplication.translate("MainWindow", "Success"),
-                content=QCoreApplication.translate("MainWindow", f"{cur_model} model removed"),
+                title=QCoreApplication.translate("MainWindow", "Removed"),
+                content=QCoreApplication.translate("MainWindow", f"Whisper model '{cur_model}' removed successfully"),
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP_RIGHT,
@@ -73,8 +73,8 @@ def whispermodelremover(main_window):
             )
         except Exception as e:
             InfoBar.error(
-                title=QCoreApplication.translate("MainWindow", "Error"),
-                content=QCoreApplication.translate("MainWindow", f"Failed to remove Whisper model: {e}"),
+                title=QCoreApplication.translate("MainWindow", "Failed"),
+                content=QCoreApplication.translate("MainWindow", f"Unable to delete Whisper model: {e}"),
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP_RIGHT,
