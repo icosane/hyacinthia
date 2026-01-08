@@ -81,3 +81,4 @@ HKEY_CURRENT_USER\Software\icosane\hyacinthia
 - [text to speech icons](https://www.flaticon.com/free-icons/text-to-speech) by FACH - Flaticon
 - [Russian Accentuator and IPA Transcriptor](https://huggingface.co/omogr/omogre) by omogr
 - [F5-TTS_RUSSIAN](https://huggingface.co/Misha24-10/F5-TTS_RUSSIAN) by Misha24-10
+- [Minimal example of f5_tts inference](https://github.com/saionaro/f5_tts_infer_min) by saionaro
