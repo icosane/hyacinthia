@@ -1,15 +1,16 @@
 import sys,os
 from files.pathconfig import initialize
 initialize()
-'''sys.stdout = open(os.devnull, 'w')
+sys.stdout = open(os.devnull, 'w')
 import warnings
-warnings.filterwarnings("ignore")'''
+warnings.filterwarnings("ignore")
 from files.config import cfg
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTranslator
 from files.interface import MainWindow
 from qfluentwidgets import FluentTranslator
 from files.pathconfig import base_dir
+from files.error_handler import ErrorHandler
 
 if __name__ == "__main__":
     if cfg.get(cfg.dpiScale) != "Auto":
@@ -32,6 +33,6 @@ if __name__ == "__main__":
 
     window = MainWindow()
     window.show()
-    sys.excepthook = sys.__excepthook__
-    sys.stderr = sys.__stderr__
+    sys.excepthook = ErrorHandler()
+    sys.stderr = ErrorHandler()
     sys.exit(app.exec())

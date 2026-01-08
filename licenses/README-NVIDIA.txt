@@ -1,0 +1,1 @@
+The following files are provided under NVIDIA’s End‑User License Agreement (see LICENSES/NVIDIA‑EULA.pdf). They are used unmodified and are required for CUDA acceleration.

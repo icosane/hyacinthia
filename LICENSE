@@ -1,0 +1,81 @@
+hyacinthia – Copyright (c) 2026  icosane
+
+This program is released under the GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007 (GPL‑3.0-or-later).
+
+You may copy, distribute and/or modify this program under the terms of
+the GPL‑3.0-or-later.  A copy of the GPL‑3 license is included in the
+file named "COPYING" in this distribution.
+
+--------------------------------------------------------------------
+Third‑Party Components and Their Licences
+--------------------------------------------------------------------
+The following third‑party software is included in this distribution.
+Each component is provided under its own licence; the licence text for
+each is included in the "LICENSES/" directory.
+
+  • NVIDIA CUDA Toolkit runtime libraries (cudart, cuBLAS, cuFFT,
+    cuDNN, NPP, etc.) – NVIDIA End‑User License Agreement (EULA).
+    See LICENSES/NVIDIA-EULA.pdf.  The required NVIDIA notice must be
+    retained in all redistributions.
+
+  • FFmpeg (static build) – GNU GENERAL PUBLIC LICENSE Version 3.
+    See LICENSES/LICENSE_ffmpeg_gpl3.txt.
+
+  • f5tts – MIT License.
+    See LICENSES/f5tts-LICENSE.txt.
+
+  • faster‑whisper – MIT License.
+    See LICENSES/faster-whisper-LICENSE.txt.
+
+  • onnxruntime – MIT License.
+    See LICENSES/onnxruntime-LICENSE.txt.
+
+  • psutil – BSD 3‑Clause License.
+    See LICENSES/psutil-LICENSE.txt.
+
+  • pyaudio – MIT License.
+    See LICENSES/pyaudio-LICENSE.txt.
+
+  • PyQt5 – GNU GENERAL PUBLIC LICENSE Version 3.
+    See LICENSES/PyQt-LICENSE.txt.
+
+  • QFluentWidgets – GNU GENERAL PUBLIC LICENSE Version 3.
+    See LICENSES/PyQt-Fluent-Widgets-LICENSE.txt.
+
+  • langdetect – Apache License, Version 2.0.
+    See LICENSES/langdetect-LICENSE.txt.
+
+  • pytorch
+    See LICENSES/pytorch-LICENSE.txt.
+
+  • pyinstaller
+    See LICENSES/pyinstaller-COPYING.txt.
+
+  • omogre – Creative Commons Attribution‑NonCommercial‑ShareAlike
+    4.0 International (CC‑BY‑NC‑SA 4.0).  This component may be used
+    only for non‑commercial purposes unless a separate commercial
+    licence is obtained from the copyright holder.
+    See LICENSES/omogre-LICENSE.txt.
+
+--------------------------------------------------------------------
+Distribution Requirements
+--------------------------------------------------------------------
+* The complete corresponding source code for this program, including
+  the exact version of FFmpeg used, must be made available under the
+  GPL‑3.0-or-later (e.g., via a public repository or a written offer).
+
+* The NVIDIA EULA notice and the CC‑BY‑NC‑SA 4.0 attribution notice must
+  be retained in all copies of the program.
+
+* All licence texts listed above must be distributed together with the
+  binary (e.g., in a "LICENSES/" folder) and referenced in any user
+  interface.
+
+--------------------------------------------------------------------
+No Warranty
+--------------------------------------------------------------------
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+SEE THE GPL‑3.0 LICENSE FOR FULL DETAILS.

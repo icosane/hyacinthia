@@ -51,7 +51,7 @@
     <message>
         <location filename="../interface.py" line="219"/>
         <source>Voice‑Input Management</source>
-        <translation>Управление вводом голоса</translation>
+        <translation>Управление голосовым вводом</translation>
     </message>
     <message>
         <location filename="../interface.py" line="224"/>

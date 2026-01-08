@@ -1,18 +1,19 @@
 import sys, os
-from PyQt5.QtGui import QColor, QIcon, QFont, QKeySequence, QTextCursor
+from PyQt5.QtGui import QColor, QIcon, QFont, QKeySequence, QTextCursor, QDesktopServices
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QFileDialog, QStackedWidget, QSizePolicy
-from PyQt5.QtCore import Qt, pyqtSignal, QCoreApplication, QTimer, QSettings, QThread
-from qfluentwidgets import setThemeColor, TransparentToolButton, FluentIcon, PushSettingCard, isDarkTheme, MessageBox, IndeterminateProgressBar, SubtitleLabel, ComboBoxSettingCard, OptionsSettingCard, HyperlinkCard, ScrollArea, InfoBar, InfoBarPosition, StrongBodyLabel, ToolTipFilter, ToolTipPosition, SwitchSettingCard, ToolButton, PlainTextEdit, ComboBox, RangeSettingCard, ProgressBar
+from PyQt5.QtCore import Qt, pyqtSignal, QCoreApplication, QTimer, QSettings, QThread, QUrl, QProcess
+from qfluentwidgets import setThemeColor, TransparentToolButton, FluentIcon, PushSettingCard, isDarkTheme, MessageBox, IndeterminateProgressBar, SubtitleLabel, ComboBoxSettingCard, OptionsSettingCard, HyperlinkCard, ScrollArea, InfoBar, InfoBarPosition, StrongBodyLabel, ToolTipFilter, ToolTipPosition, SwitchSettingCard, ToolButton, PlainTextEdit, ComboBox, RangeSettingCard, ProgressBar, PushButton
 from qframelesswindow.utils import getSystemAccentColor
 from ctranslate2 import get_cuda_device_count
 from files.config import cfg, available_models
 from files.whisper_utils import update_model, whispermodelremover
 from files.voice_input import VoiceController
 from files.mic_controls import recording_started, recording_stopped, transcription_ready
-from files.pathconfig import voices_dir
+from files.pathconfig import voices_dir, base_dir
 from files.shortcuts import ShortcutsCard
 from files.tts_worker import TTSWorker
 from datetime import datetime
+from files.drop import DropPlainTextEdit
 
 
 
@@ -25,13 +26,14 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(QCoreApplication.translate("MainWindow", "hyacinthia"))
-        #icon_path = os.path.join(res_dir, "AlyssumResources", "assets", "icon.ico")
-        #self.setWindowIcon(QIcon(icon_path))
+        icon_path = os.path.join(base_dir, "icon", "dSHWGFy3.png")
+        self.setWindowIcon(QIcon(icon_path))
         self.settings = QSettings('icosane', 'hyacinthia')
         self.setMinimumSize(1280,600)
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
         self.current_text = ""
+        self.last_save_path = self.settings.value('last_save_path', type=str)
 
         self.voice_controller = VoiceController(
             whisper_model_name=cfg.get(cfg.whisper_model).value,
@@ -143,7 +145,7 @@ class MainWindow(QMainWindow):
 
         main_layout.addLayout(settings_layout)
 
-        self.textinputw = PlainTextEdit()
+        self.textinputw = DropPlainTextEdit()
         self.set_font()
         main_layout.addWidget(self.textinputw)
 
@@ -466,6 +468,15 @@ class MainWindow(QMainWindow):
     def update_voice_shortcut(self, shortcut):
         self.card_editshortcuts.set_voice_shortcut(shortcut)
 
+    def reveal_in_explorer(self, path: str):
+        url = QUrl.fromLocalFile(os.path.normpath(path))
+        QDesktopServices.openUrl(url)
+
+    def _store_last_save_path(self, path: str) -> None:
+        self.last_save_path = path
+        self.settings.setValue('last_save_path', path)
+
+
     def start_tts(self):
         text = self.textinputw.toPlainText().strip()
         if not text:
@@ -483,10 +494,16 @@ class MainWindow(QMainWindow):
         formatted_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
         default_name = f"hyacinthia_output_{formatted_time}." + out_format
+
+        if self.last_save_path and os.path.isdir(os.path.dirname(self.last_save_path)):
+            default_dir = os.path.dirname(self.last_save_path)
+        else:
+            default_dir = os.path.expanduser("~")
+
         save_path, _ = QFileDialog.getSaveFileName(
             self,
             QCoreApplication.translate("MainWindow", "Save generated speech as…"),
-            os.path.join(os.path.expanduser("~"), default_name),
+            os.path.join(default_dir, default_name),
             f"{out_format.upper()} Files (*.{out_format});;All Files (*)",
         )
         if not save_path:
@@ -517,6 +534,7 @@ class MainWindow(QMainWindow):
 
     def _on_tts_finished(self, saved_path: str):
         self.progressbar.stop()
+        self._store_last_save_path(saved_path)
         self.start_button.setEnabled(True)
         self.comboBox1.setEnabled(True)
         self.comboBox2.setEnabled(True)
@@ -525,12 +543,17 @@ class MainWindow(QMainWindow):
         self.mic_button.setEnabled(True)
         self.start_button.setIcon(FluentIcon.PLAY)
 
-        InfoBar.success(
+        w = InfoBar.success(
             title=QCoreApplication.translate("MainWindow", "TTS finished"),
             content=QCoreApplication.translate("MainWindow", "File saved to: {0}").format(saved_path),
             parent=self,
-            duration=3000,
+            duration=12000,
         )
+        button = PushButton(QCoreApplication.translate("MainWindow", 'Open'))
+        directory = os.path.dirname(saved_path)
+        button.clicked.connect(lambda: self.reveal_in_explorer(directory))
+        w.addWidget(button)
+        w.show()
 
     def _on_tts_error(self, message: str):
         self.progressbar.stop()
