@@ -2,8 +2,13 @@ from enum import Enum
 from faster_whisper import available_models
 from PyQt5.QtCore import QLocale
 from PyQt5.QtGui import QKeySequence
+import sys,os
+original_stdout = sys.stdout
+sys.stdout = open(os.devnull, 'w')
 from qfluentwidgets import (qconfig, QConfig, OptionsConfigItem, Theme,
                             OptionsValidator, EnumSerializer, ConfigSerializer, ConfigItem, BoolValidator,RangeConfigItem,RangeValidator)
+sys.stdout.close()
+sys.stdout = original_stdout
 
 class Language(Enum):
     """ Language enumeration """

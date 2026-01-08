@@ -63,8 +63,7 @@ def generate(text: str, ref_file: str, out_format: str, out_path: str) -> str:
         cross_fade_duration=0.15,
         nfe_step=64,
         speed=1,
-        device="cuda",
-        progress=None
+        device="cuda"
     )
 
     sf.write(out_path, wav, sr, format=out_format)

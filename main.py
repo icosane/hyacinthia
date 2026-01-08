@@ -1,7 +1,7 @@
 import sys,os
 from files.pathconfig import initialize
 initialize()
-sys.stdout = open(os.devnull, 'w')
+#sys.stdout = open(os.devnull, 'w')
 import warnings
 warnings.filterwarnings("ignore")
 from files.config import cfg
