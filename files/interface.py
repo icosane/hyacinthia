@@ -1,8 +1,8 @@
 import sys, os
 from PyQt5.QtGui import QColor, QIcon, QFont, QKeySequence, QTextCursor, QDesktopServices
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QFileDialog, QStackedWidget, QSizePolicy
-from PyQt5.QtCore import Qt, pyqtSignal, QCoreApplication, QTimer, QSettings, QThread, QUrl, QProcess
-from qfluentwidgets import setThemeColor, TransparentToolButton, FluentIcon, PushSettingCard, isDarkTheme, MessageBox, IndeterminateProgressBar, SubtitleLabel, ComboBoxSettingCard, OptionsSettingCard, HyperlinkCard, ScrollArea, InfoBar, InfoBarPosition, StrongBodyLabel, ToolTipFilter, ToolTipPosition, SwitchSettingCard, ToolButton, PlainTextEdit, ComboBox, RangeSettingCard, ProgressBar, PushButton
+from PyQt5.QtCore import Qt, pyqtSignal, QCoreApplication, QTimer, QSettings, QThread, QUrl
+from qfluentwidgets import setThemeColor, TransparentToolButton, FluentIcon, PushSettingCard, isDarkTheme, MessageBox, IndeterminateProgressBar, SubtitleLabel, ComboBoxSettingCard, OptionsSettingCard, HyperlinkCard, ScrollArea, InfoBar, InfoBarPosition, StrongBodyLabel, ToolTipFilter, ToolTipPosition, SwitchSettingCard, ToolButton, ComboBox, RangeSettingCard, ProgressBar, PushButton
 from qframelesswindow.utils import getSystemAccentColor
 from ctranslate2 import get_cuda_device_count
 from files.config import cfg, available_models
