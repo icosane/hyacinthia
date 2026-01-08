@@ -1,20 +1,16 @@
 import sys, os
 from PyQt5.QtGui import QColor, QIcon, QFont, QKeySequence, QTextCursor
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QFileDialog, QLabel, QStackedWidget, QSizePolicy
-from PyQt5.QtCore import Qt, pyqtSignal, QTranslator, QCoreApplication, QTimer, QSettings, QThread
-'''sys.stdout = open(os.devnull, 'w')
-import warnings
-warnings.filterwarnings("ignore")'''
-from qfluentwidgets import setThemeColor, TransparentToolButton, FluentIcon, PushSettingCard, isDarkTheme, MessageBox, FluentTranslator, IndeterminateProgressBar, PushButton, SubtitleLabel, ComboBoxSettingCard, OptionsSettingCard, HyperlinkCard, ScrollArea, InfoBar, InfoBarPosition, StrongBodyLabel, TransparentTogglePushButton, TextBrowser, TextEdit, BodyLabel, LineEdit, SimpleExpandGroupSettingCard, SwitchButton, ToolTipFilter, ToolTipPosition, SwitchSettingCard, ToolButton, PlainTextEdit, ComboBox, RangeSettingCard, ProgressBar
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QFileDialog, QStackedWidget, QSizePolicy
+from PyQt5.QtCore import Qt, pyqtSignal, QCoreApplication, QTimer, QSettings, QThread
+from qfluentwidgets import setThemeColor, TransparentToolButton, FluentIcon, PushSettingCard, isDarkTheme, MessageBox, IndeterminateProgressBar, SubtitleLabel, ComboBoxSettingCard, OptionsSettingCard, HyperlinkCard, ScrollArea, InfoBar, InfoBarPosition, StrongBodyLabel, ToolTipFilter, ToolTipPosition, SwitchSettingCard, ToolButton, PlainTextEdit, ComboBox, RangeSettingCard, ProgressBar
 from qframelesswindow.utils import getSystemAccentColor
 from ctranslate2 import get_cuda_device_count
 from files.config import cfg, available_models
 from files.whisper_utils import update_model, whispermodelremover
 from files.voice_input import VoiceController
 from files.mic_controls import recording_started, recording_stopped, transcription_ready
-from files.pathconfig import voices_dir, tts_dir
+from files.pathconfig import voices_dir
 from files.shortcuts import ShortcutsCard
-from files.tts import generate
 from files.tts_worker import TTSWorker
 from datetime import datetime
 
@@ -156,7 +152,7 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(main_widget)
 
         self.progressbar = IndeterminateProgressBar(start=False)
-        
+
         main_layout.addWidget(self.progressbar)
 
         #tooltips
@@ -193,7 +189,7 @@ class MainWindow(QMainWindow):
         self.file_button.clicked.connect(self.open_file_and_load_text)
         self.start_button.clicked.connect(self.start_tts)
         self.clear_button.clicked.connect(self.clearinput)
-        
+
         self.mic_button.clicked.connect(self.voice_controller.toggle_recording)
         self.voice_controller.recording_started.connect(lambda: recording_started(self))
         self.voice_controller.recording_stopped.connect(lambda: recording_stopped(self))
@@ -257,8 +253,8 @@ class MainWindow(QMainWindow):
         self.fontsize_card = RangeSettingCard(
             cfg.fontsize,
             FluentIcon.FONT,
-            title="Editor Font Size",
-            content="Font size used in the transcription editor"
+            title=QCoreApplication.translate("MainWindow","Editor Font Size"),
+            content=QCoreApplication.translate("MainWindow","Font size used in the transcription editor")
         )
         card_layout.addWidget(self.fontsize_card,  alignment=Qt.AlignmentFlag.AlignTop )
         cfg.fontsize.valueChanged.connect(self.set_font)
@@ -417,7 +413,7 @@ class MainWindow(QMainWindow):
                 parent=self
             )
             self.update_remove_button(False)
-    
+
     def save_settings(self):
         self.settings.setValue("size", self.size())
         self.settings.setValue("pos", self.pos())
@@ -505,7 +501,7 @@ class MainWindow(QMainWindow):
         self._tts_thread = QThread(self)             # keep a reference on the instance
         self._tts_worker = TTSWorker(text, ref_file, out_format, save_path)
         self._tts_worker.moveToThread(self._tts_thread)
-        
+
 
         self._tts_thread.started.connect(self._tts_worker.run)
         self._tts_worker.finished.connect(self._on_tts_finished)
@@ -527,7 +523,7 @@ class MainWindow(QMainWindow):
         self.file_button.setEnabled(True)
         self.clear_button.setEnabled(True)
         self.mic_button.setEnabled(True)
-        self.start_button.setIcon(FluentIcon.PLAY)   # back to the original icon
+        self.start_button.setIcon(FluentIcon.PLAY)
 
         InfoBar.success(
             title=QCoreApplication.translate("MainWindow", "TTS finished"),
@@ -535,7 +531,7 @@ class MainWindow(QMainWindow):
             parent=self,
             duration=3000,
         )
-    
+
     def _on_tts_error(self, message: str):
         self.progressbar.stop()
         self.start_button.setEnabled(True)
