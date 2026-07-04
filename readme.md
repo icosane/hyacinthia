@@ -56,12 +56,14 @@ This software depends on packages that may be licensed under different open-sour
    ./files/models/tts/
    ```
     Tested on: [F5-TTS_RUSSIAN](https://huggingface.co/Misha24-10/F5-TTS_RUSSIAN)
-8. Download [omogre](https://huggingface.co/omogr/omogre). You need `accentuator_transcriptor_tiny.gz`. Place the unarchived files into:
+8. Download [omogre](https://huggingface.co/omogr/omogre).
+You need `accentuator_transcriptor_tiny.gz`. Place the unarchived files into:
     ```
    ./files/models/omogre/
    ```
+   > NOTE: omogre model/data is provided under CC BY-NC-SA 4.0; comply with the NonCommercial restriction for that model/data.
 
-   **Tip:** You can also open the folder in [Visual Studio Code](https://code.visualstudio.com/download) or [VSCodium](https://github.com/VSCodium/vscodium/releases), install the Python extension, then press `Ctrl+Shift+P` → **Python: Create Environment** → `.venv` → select `requirements.txt`.
+**Tip:** You can also open the folder in [Visual Studio Code](https://code.visualstudio.com/download) or [VSCodium](https://github.com/VSCodium/vscodium/releases), install the Python extension, then press `Ctrl+Shift+P` → **Python: Create Environment** → `.venv` → select `requirements.txt`.
 
 ## Voice input
 
@@ -79,6 +81,6 @@ HKEY_CURRENT_USER\Software\icosane\hyacinthia
 
 ## Acknowledgments
 - [text to speech icons](https://www.flaticon.com/free-icons/text-to-speech) by FACH - Flaticon
-- [Russian Accentuator and IPA Transcriptor](https://huggingface.co/omogr/omogre) by omogr
+- [Russian Accentuator and IPA Transcriptor](https://huggingface.co/omogr/omogre) by omogr (CC BY-NC-SA 4.0 model/data; NonCommercial applies)
 - [F5-TTS_RUSSIAN](https://huggingface.co/Misha24-10/F5-TTS_RUSSIAN) by Misha24-10
 - [Minimal example of f5_tts inference](https://github.com/saionaro/f5_tts_infer_min) by saionaro
